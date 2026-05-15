@@ -17,10 +17,10 @@ Job Scheduler Service adalah layanan background berbasis Node.js untuk menjalank
 
 ## Installation
 
-#### 1. Install my-project with npm
+#### 1. Clone git
 
 ```bash
-  git clone <your-repo-url>
+  git clone
   cd <your-project-folder>
 ```
 #### 2. Install dependencies
