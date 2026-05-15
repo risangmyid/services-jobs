@@ -36,6 +36,15 @@ Sesuaikan Konfigurasi database di:
 ```bash
   knexfile.js
 ```
+
+#### 4. Migrate Database
+
+CLI:
+
+```bash
+  npx knex migrate:latest
+```
+
 ## Usage/Examples
 
 Isi jadwal di table Jobs.
@@ -56,7 +65,6 @@ isi trigger di table action:
 | to     | appid/URL http      |
 | param  | yang akan dikirim untuk tipe webhook dengan format { method, headers, body }  |
 | aktif  | Active flag         |
-
 
 
 
