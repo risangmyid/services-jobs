@@ -1,0 +1,302 @@
+# Job Scheduler HTTP Server
+
+Scheduler sederhana berbasis **Node.js** yang mendukung:
+
+* Menjalankan job pada tanggal tertentu (`date`)
+* Menjalankan job berdasarkan **Cron Expression**
+* Mengirim HTTP POST ke URL tujuan
+* Menyimpan job ke file `jobs.json` saat aplikasi berhenti
+* Memproses beberapa request secara bersamaan menggunakan queue
+
+---
+
+# Instalasi
+
+```bash
+npm install
+```
+
+## Dependency
+
+```bash
+npm install cac find-my-way heap-js cron-parser p-queue
+```
+
+Node.js minimal yang disarankan:
+
+```
+Node.js >= 18
+```
+
+Karena aplikasi menggunakan API `fetch()` bawaan Node.js.
+
+---
+
+# Menjalankan Server
+
+```bash
+node index.js --port 3000
+```
+
+Contoh:
+
+```bash
+node index.js --port 8080
+```
+
+Jika parameter `--port` tidak diberikan maka aplikasi akan berhenti dengan pesan:
+
+```
+Port Tidak ada
+```
+
+---
+
+# Cara Kerja
+
+Semua job disimpan di dalam **Priority Queue (Heap)** berdasarkan waktu eksekusi.
+
+Setiap 1 detik scheduler akan mengecek apakah terdapat job yang waktunya sudah tiba.
+
+Jika waktunya sudah lewat maka scheduler akan:
+
+1. Mengeluarkan job dari heap
+2. Mengirim HTTP POST ke URL tujuan
+3. Jika job menggunakan Cron maka akan dijadwalkan ulang
+
+---
+
+# API
+
+## Melihat Semua Job
+
+```
+GET /
+```
+
+Response
+
+```json
+[
+  {
+    "_id": "ABC123",
+    "date": "2026-08-01T10:00:00.000Z",
+    "url": "http://localhost:5000/test"
+  }
+]
+```
+
+---
+
+## Menambah Job
+
+```
+POST /add
+```
+
+Header
+
+```
+Content-Type: application/json
+```
+
+### Job berdasarkan Date
+
+```json
+{
+    "date":"2026-08-01T10:00:00",
+    "url":"http://localhost:5000/test"
+}
+```
+
+### Job berdasarkan Cron
+
+```json
+{
+    "cron":"*/5 * * * *",
+    "url":"http://localhost:5000/test"
+}
+```
+
+### Job dengan Timezone
+
+```json
+{
+    "cron":"0 8 * * *",
+    "timezone":"Asia/Jakarta",
+    "url":"http://localhost:5000/test"
+}
+```
+
+### Menambah Banyak Job
+
+```json
+[
+    {
+        "date":"2026-08-01T10:00:00",
+        "url":"http://localhost:5000/test"
+    },
+    {
+        "cron":"*/10 * * * *",
+        "url":"http://localhost:5000/test"
+    }
+]
+```
+
+Response
+
+```json
+[
+    {
+        "ok": true,
+        "id": "3D7FAF1C6E",
+        "message": "Success"
+    }
+]
+```
+
+---
+
+## Menghapus Job
+
+```
+DELETE /:id
+```
+
+Contoh
+
+```
+DELETE /3D7FAF1C6E
+```
+
+Response
+
+```
+3D7FAF1C6E
+```
+
+Penghapusan hanya menghapus job dari daftar aktif (`heapJobs`). Job yang berada di dalam heap akan dilewati ketika waktunya tiba.
+
+---
+
+# Format Job
+
+| Field    | Tipe   | Wajib    | Keterangan                |
+| -------- | ------ | -------- | ------------------------- |
+| date     | String | Tidak    | Waktu eksekusi            |
+| cron     | String | Tidak    | Cron Expression           |
+| timezone | String | Tidak    | Timezone Cron             |
+| url      | String | Tidak    | URL tujuan POST           |
+| _id      | String | Otomatis | ID Job                    |
+| prev     | Date   | Otomatis | Waktu sebelumnya          |
+| date     | Date   | Otomatis | Waktu eksekusi berikutnya |
+
+Minimal harus memiliki salah satu:
+
+* `date`
+* `cron`
+
+---
+
+# Cron Expression
+
+Contoh
+
+| Cron          | Keterangan              |
+| ------------- | ----------------------- |
+| `* * * * *`   | Setiap menit            |
+| `*/5 * * * *` | Setiap 5 menit          |
+| `0 * * * *`   | Setiap jam              |
+| `0 8 * * *`   | Setiap hari pukul 08:00 |
+| `0 0 * * 1`   | Setiap hari Senin       |
+
+---
+
+# HTTP Request
+
+Saat job dijalankan server akan mengirim request:
+
+```
+POST <url>
+```
+
+Header
+
+```
+Content-Type: application/json
+```
+
+Body
+
+```json
+{
+    "_id":"...",
+    "date":"...",
+    "cron":"...",
+    "url":"..."
+}
+```
+
+Timeout request adalah **1 detik**.
+
+Jika gagal maka hanya akan muncul log:
+
+```
+gagal
+```
+
+Scheduler akan tetap berjalan.
+
+---
+
+# Queue
+
+HTTP Request diproses menggunakan **PQueue**.
+
+Konfigurasi saat ini:
+
+```javascript
+concurrency: 5
+```
+
+Artinya maksimal **5 request** dijalankan secara bersamaan.
+
+---
+
+# Penyimpanan Job
+
+Saat aplikasi menerima:
+
+* SIGINT
+* SIGTERM
+
+Semua job yang masih aktif akan disimpan ke file
+
+```
+jobs.json
+```
+
+Ketika aplikasi dijalankan kembali, file tersebut akan dibaca secara otomatis sehingga scheduler melanjutkan job yang belum selesai.
+
+---
+
+# Struktur Project
+
+```
+.
+├── index.js
+├── jobs.json
+├── package.json
+└── README.md
+```
+
+---
+
+# Catatan
+
+* Scheduler melakukan pengecekan setiap 1 detik.
+* Job dengan `cron` akan dijadwalkan ulang secara otomatis setelah dieksekusi.
+* Job dengan `date` hanya dijalankan satu kali.
+* Penghapusan job menggunakan endpoint `DELETE` hanya menonaktifkan job, sehingga saat scheduler menemukan job tersebut di heap, job akan dilewati.
+* Request HTTP menggunakan metode `POST`.
+* Timeout request adalah 1 detik.

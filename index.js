@@ -40,18 +40,36 @@ const getWaktu = (cron, options) => {
 };
 
 const olahRequest = (dt, lama) => {
-  if (!dt?.waktu && !dt?.cron) return dt;
+  if (!dt?.date && !dt?.cron) {
+    return {
+      ok: false,
+      message: "Date atau Cron Kosong",
+      data: dt,
+    };
+  }
 
   const add = {};
-  let wkt;
+
+  let wkt = new Date();
+  let prev;
+
+  if (dt?.date) {
+    let tgl = new Date(dt?.date);
+
+    if (!isNaN(tgl) && tgl > wkt) {
+      wkt = tgl;
+    }
+
+    if (!isNaN(tgl)) {
+      prev = tgl;
+    }
+  }
 
   if (dt.cron) {
     wkt = getWaktu(dt.cron, {
-      currentDate: new Date(dt?.date) || new Date(),
+      currentDate: wkt,
       tz: dt?.timezone || "",
     });
-  } else {
-    wkt = new Date(dt?.date);
   }
 
   const id = !lama ? createId() : dt._id;
@@ -59,12 +77,18 @@ const olahRequest = (dt, lama) => {
   Object.assign(add, dt, {
     _id: id,
     date: wkt,
+    prev: prev,
   });
 
   heap.push(add);
   heapJobs.set(id, add);
 
-  return add;
+  return {
+    ok: true,
+    id: id,
+    message: "Success",
+    data: add,
+  };
 };
 
 if (fs.existsSync("jobs.json")) {
@@ -74,8 +98,6 @@ if (fs.existsSync("jobs.json")) {
     for (let d of data) {
       olahRequest(d, true);
     }
-
-    // heap.init(data);
   } catch (error) {
     console.log("Gagal Load Jobs", error.message);
   }
@@ -128,8 +150,6 @@ server.listen(option?.options?.port, "0.0.0.0", (err, addr) => {
 });
 
 const proses = (job) => {
-  console.log("p", job);
-
   if (job?.cron) {
     job.date = "";
     olahRequest(job);
@@ -137,6 +157,7 @@ const proses = (job) => {
 
   if (job?.url) {
     queue.add(() => {
+      console.log("kirim", job?.url);
       const controller = new AbortController();
 
       setTimeout(() => controller.abort(), 1000);
