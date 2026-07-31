@@ -1,68 +1,28 @@
-# Job Scheduler HTTP Server
+# Service Job Scheduler 
 
-Scheduler sederhana berbasis **Node.js** yang mendukung:
+Sudah Banyak module Job Scheduler. tapi ada yang saya tawarkan disini sebagai pembeda.
 
-- Menjalankan job pada tanggal tertentu (`date`)
-- Menjalankan job berdasarkan **Cron Expression**
-- Mengirim HTTP POST ke URL tujuan
-- Menyimpan job ke file `jobs.json` saat aplikasi berhenti
-- Memproses beberapa request secara bersamaan menggunakan queue
-
+- Sederhana. dibuat agar lebih optimal dan minimalis.
+- Data job yang **dinamis**. umumnya job schedule itu berbentuk/bertipe setup. tapi ini bisa mengikat ke data (karyawan, mesin, order, dll..)
+- **Bisa Handle banyak Job**. paling tidak ribuan data.
+- **Berbentuk services** terpisah dari aplikasi anda. beberapa aplikasi bisa 1 schedule disini. 
+- Memiliki REST API.
+  
 ---
 
 # Instalasi
 
+Donwload atau clone git. lalu:
+
 ```bash
 npm install
 ```
-
-## Dependency
-
-```bash
-npm install cac find-my-way heap-js cron-parser p-queue
-```
-
-Node.js minimal yang disarankan:
-
-```
-Node.js >= 18
-```
-
-Karena aplikasi menggunakan API `fetch()` bawaan Node.js.
-
----
 
 # Menjalankan Server
 
 ```bash
 node index.js --port 3000
 ```
-
-Contoh:
-
-```bash
-node index.js --port 8080
-```
-
-Jika parameter `--port` tidak diberikan maka aplikasi akan berhenti dengan pesan:
-
-```
-Port Tidak ada
-```
-
----
-
-# Cara Kerja
-
-Semua job disimpan di dalam **Priority Queue (Heap)** berdasarkan waktu eksekusi.
-
-Setiap 1 detik scheduler akan mengecek apakah terdapat job yang waktunya sudah tiba.
-
-Jika waktunya sudah lewat maka scheduler akan:
-
-1. Mengeluarkan job dari heap
-2. Mengirim HTTP POST ke URL tujuan
-3. Jika job menggunakan Cron maka akan dijadwalkan ulang
 
 ---
 
@@ -128,7 +88,7 @@ Content-Type: application/json
 }
 ```
 
-### Menambah Banyak Job
+### Menambah Banyak Job dalam 1 request API
 
 ```json
 [
@@ -174,27 +134,26 @@ Response
 ```
 3D7FAF1C6E
 ```
-
-Penghapusan hanya menghapus job dari daftar aktif (`heapJobs`). Job yang berada di dalam heap akan dilewati ketika waktunya tiba.
+**Job terdalete saat waktu schedule tiba** 
 
 ---
 
-# Format Job
+# Format Job yang di kirim
 
 | Field    | Tipe   | Wajib    | Keterangan                |
 | -------- | ------ | -------- | ------------------------- |
 | date     | String | Tidak    | Waktu eksekusi            |
 | cron     | String | Tidak    | Cron Expression           |
 | timezone | String | Tidak    | Timezone Cron             |
-| url      | String | Tidak    | URL tujuan POST           |
-| \_id     | String | Otomatis | ID Job                    |
-| prev     | Date   | Otomatis | Waktu sebelumnya          |
-| date     | Date   | Otomatis | Waktu eksekusi berikutnya |
+| url      | String | Ya       | URL tujuan POST           |
 
 Minimal harus memiliki salah satu:
 
 - `date`
 - `cron`
+
+
+**Bisa kirim data bebas sesuai kebutuhan**
 
 ---
 
@@ -209,6 +168,8 @@ Contoh
 | `0 * * * *`   | Setiap jam              |
 | `0 8 * * *`   | Setiap hari pukul 08:00 |
 | `0 0 * * 1`   | Setiap hari Senin       |
+
+lihat https://crontab.cronhub.io/
 
 ---
 
@@ -236,67 +197,3 @@ Body
   "url": "..."
 }
 ```
-
-Timeout request adalah **1 detik**.
-
-Jika gagal maka hanya akan muncul log:
-
-```
-gagal
-```
-
-Scheduler akan tetap berjalan.
-
----
-
-# Queue
-
-HTTP Request diproses menggunakan **PQueue**.
-
-Konfigurasi saat ini:
-
-```javascript
-concurrency: 5;
-```
-
-Artinya maksimal **5 request** dijalankan secara bersamaan.
-
----
-
-# Penyimpanan Job
-
-Saat aplikasi menerima:
-
-- SIGINT
-- SIGTERM
-
-Semua job yang masih aktif akan disimpan ke file
-
-```
-jobs.json
-```
-
-Ketika aplikasi dijalankan kembali, file tersebut akan dibaca secara otomatis sehingga scheduler melanjutkan job yang belum selesai.
-
----
-
-# Struktur Project
-
-```
-.
-├── index.js
-├── jobs.json
-├── package.json
-└── README.md
-```
-
----
-
-# Catatan
-
-- Scheduler melakukan pengecekan setiap 1 detik.
-- Job dengan `cron` akan dijadwalkan ulang secara otomatis setelah dieksekusi.
-- Job dengan `date` hanya dijalankan satu kali.
-- Penghapusan job menggunakan endpoint `DELETE` hanya menonaktifkan job, sehingga saat scheduler menemukan job tersebut di heap, job akan dilewati.
-- Request HTTP menggunakan metode `POST`.
-- Timeout request adalah 1 detik.
