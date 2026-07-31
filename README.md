@@ -2,11 +2,11 @@
 
 Scheduler sederhana berbasis **Node.js** yang mendukung:
 
-* Menjalankan job pada tanggal tertentu (`date`)
-* Menjalankan job berdasarkan **Cron Expression**
-* Mengirim HTTP POST ke URL tujuan
-* Menyimpan job ke file `jobs.json` saat aplikasi berhenti
-* Memproses beberapa request secara bersamaan menggunakan queue
+- Menjalankan job pada tanggal tertentu (`date`)
+- Menjalankan job berdasarkan **Cron Expression**
+- Mengirim HTTP POST ke URL tujuan
+- Menyimpan job ke file `jobs.json` saat aplikasi berhenti
+- Memproses beberapa request secara bersamaan menggunakan queue
 
 ---
 
@@ -104,8 +104,8 @@ Content-Type: application/json
 
 ```json
 {
-    "date":"2026-08-01T10:00:00",
-    "url":"http://localhost:5000/test"
+  "date": "2026-08-01T10:00:00",
+  "url": "http://localhost:5000/test"
 }
 ```
 
@@ -113,8 +113,8 @@ Content-Type: application/json
 
 ```json
 {
-    "cron":"*/5 * * * *",
-    "url":"http://localhost:5000/test"
+  "cron": "*/5 * * * *",
+  "url": "http://localhost:5000/test"
 }
 ```
 
@@ -122,9 +122,9 @@ Content-Type: application/json
 
 ```json
 {
-    "cron":"0 8 * * *",
-    "timezone":"Asia/Jakarta",
-    "url":"http://localhost:5000/test"
+  "cron": "0 8 * * *",
+  "timezone": "Asia/Jakarta",
+  "url": "http://localhost:5000/test"
 }
 ```
 
@@ -132,14 +132,14 @@ Content-Type: application/json
 
 ```json
 [
-    {
-        "date":"2026-08-01T10:00:00",
-        "url":"http://localhost:5000/test"
-    },
-    {
-        "cron":"*/10 * * * *",
-        "url":"http://localhost:5000/test"
-    }
+  {
+    "date": "2026-08-01T10:00:00",
+    "url": "http://localhost:5000/test"
+  },
+  {
+    "cron": "*/10 * * * *",
+    "url": "http://localhost:5000/test"
+  }
 ]
 ```
 
@@ -147,11 +147,11 @@ Response
 
 ```json
 [
-    {
-        "ok": true,
-        "id": "3D7FAF1C6E",
-        "message": "Success"
-    }
+  {
+    "ok": true,
+    "id": "3D7FAF1C6E",
+    "message": "Success"
+  }
 ]
 ```
 
@@ -187,14 +187,14 @@ Penghapusan hanya menghapus job dari daftar aktif (`heapJobs`). Job yang berada 
 | cron     | String | Tidak    | Cron Expression           |
 | timezone | String | Tidak    | Timezone Cron             |
 | url      | String | Tidak    | URL tujuan POST           |
-| _id      | String | Otomatis | ID Job                    |
+| \_id     | String | Otomatis | ID Job                    |
 | prev     | Date   | Otomatis | Waktu sebelumnya          |
 | date     | Date   | Otomatis | Waktu eksekusi berikutnya |
 
 Minimal harus memiliki salah satu:
 
-* `date`
-* `cron`
+- `date`
+- `cron`
 
 ---
 
@@ -230,10 +230,10 @@ Body
 
 ```json
 {
-    "_id":"...",
-    "date":"...",
-    "cron":"...",
-    "url":"..."
+  "_id": "...",
+  "date": "...",
+  "cron": "...",
+  "url": "..."
 }
 ```
 
@@ -256,7 +256,7 @@ HTTP Request diproses menggunakan **PQueue**.
 Konfigurasi saat ini:
 
 ```javascript
-concurrency: 5
+concurrency: 5;
 ```
 
 Artinya maksimal **5 request** dijalankan secara bersamaan.
@@ -267,8 +267,8 @@ Artinya maksimal **5 request** dijalankan secara bersamaan.
 
 Saat aplikasi menerima:
 
-* SIGINT
-* SIGTERM
+- SIGINT
+- SIGTERM
 
 Semua job yang masih aktif akan disimpan ke file
 
@@ -294,9 +294,9 @@ Ketika aplikasi dijalankan kembali, file tersebut akan dibaca secara otomatis se
 
 # Catatan
 
-* Scheduler melakukan pengecekan setiap 1 detik.
-* Job dengan `cron` akan dijadwalkan ulang secara otomatis setelah dieksekusi.
-* Job dengan `date` hanya dijalankan satu kali.
-* Penghapusan job menggunakan endpoint `DELETE` hanya menonaktifkan job, sehingga saat scheduler menemukan job tersebut di heap, job akan dilewati.
-* Request HTTP menggunakan metode `POST`.
-* Timeout request adalah 1 detik.
+- Scheduler melakukan pengecekan setiap 1 detik.
+- Job dengan `cron` akan dijadwalkan ulang secara otomatis setelah dieksekusi.
+- Job dengan `date` hanya dijalankan satu kali.
+- Penghapusan job menggunakan endpoint `DELETE` hanya menonaktifkan job, sehingga saat scheduler menemukan job tersebut di heap, job akan dilewati.
+- Request HTTP menggunakan metode `POST`.
+- Timeout request adalah 1 detik.
